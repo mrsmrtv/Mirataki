@@ -37,11 +37,7 @@ users = load_json(USERS_FILE)
 pending = load_json(PENDING_FILE)
 checkins = load_json(CHECKINS_FILE)
 raffle_state = load_json(RAFFLE_STATE_FILE)
-store_items = {
-    "cap": {"name": "🧢 Фирменная кепка", "price": 500},
-    "bottle": {"name": "💧 Бутылка Mirataki", "price": 800},
-    "shirt": {"name": "👕 Футболка с логотипом", "price": 1200}
-}
+
 
 # -------------------- API --------------------
 def send_message(chat_id, text, reply_markup=None):
@@ -181,16 +177,7 @@ def handle_text(user_id, chat_id, text):
             ]
         })
 
-    elif text == "🧺 Открыть корзину":
-        msg = "Выбери товар для покупки:\n"
-        keyboard = {
-            "inline_keyboard": []
-        }
-        for code, item in store_items.items():
-            keyboard["inline_keyboard"].append([
-                {"text": item['name'], "callback_data": f"choose:{code}"}
-            ])
-        send_message(chat_id, msg, reply_markup=keyboard)
+
 
 
     elif text == "🔙 Назад":
