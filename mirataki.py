@@ -177,11 +177,7 @@ def handle_text(user_id, chat_id, text):
             ]
         })
 
-
-
-
-    elif text == "🔙 Назад":
-        send_message(chat_id, "🔙 Возврат в главное меню", reply_markup=get_main_keyboard(is_moderator))
+   
         # Обработка ввода адреса доставки
     elif users[user_id].get("state", {}).get("action") == "await_address":
         address = text.strip()
