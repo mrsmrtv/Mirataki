@@ -111,7 +111,7 @@ def check_achievements(user_id):
 def get_main_keyboard(is_moderator=False):
     if is_moderator:
         return {"keyboard": [[{"text": "📥 Модерация"}, {"text": "🚀 Начать розыгрыш"}, {"text": "🛑 Завершить розыгрыш"}]], "resize_keyboard": True}
-    return {"keyboard": [[{"text": "💰 Баланс"}], [{"text": "🎁 Розыгрыш"}, {"text": "📍 Места"}], [{"text": "👫 Пригласить друга"}, {"text": "📊 Статистика"}],[{"text":"🏅 Мои ачивки"},{"text": "🛍 Магазин"}]], "resize_keyboard": True}
+    return {"keyboard": [[{"text": "💰 Баланс"}], [{"text": "🎁 Розыгрыш"}, {"text": "📍 Места"}], [{"text": "👫 Пригласить друга"}, {"text": "📊 Статистика"}],[{"text":"🏅 Мои ачивки"},{"text": "🛍 Магазин"}],[{"text": "🎁 Ежедневный подарок"}]], "resize_keyboard": True}
 def get_location_keyboard(photo_id):
     return {
         "inline_keyboard": [[
@@ -163,6 +163,12 @@ def handle_text(user_id, chat_id, text):
         count = len(checkins.get(user_id, []))
         coins = users[user_id]["coins"]
         send_message(chat_id, f"📸 Фото отправлено: {count}\n💰 Баланс: {coins}\n🎖️ Ранг: {get_rank(coins)}")
+
+    elif text == "🎁 Ежедневный подарок":
+        if daily_bonus(user_id):
+            send_message(chat_id, "🎉 Ты получил 10 Mirataki за сегодня!")
+        else:
+            send_message(chat_id, "📆 Ты уже получил подарок сегодня. Возвращайся завтра!")
 
     elif text == "🏅 Мои ачивки":
         ach = users.get(user_id, {}).get("achievements", [])
