@@ -58,30 +58,77 @@ def send_photo(chat_id, photo_id, caption="", reply_markup=None):
     except Exception as e:
         logging.error(f"Ошибка при отправке фото: {e}")
 
+def send_media_group(chat_id, media):
+    data = {
+        "chat_id": chat_id,
+        "media": json.dumps(media)
+    }
+    try:
+        requests.post(URL + "sendMediaGroup", data=data).raise_for_status()
+    except Exception as e:
+        logging.error(f"Ошибка при отправке группы фото: {e}")
+
+def show_shop(chat_id):
+    media = [
+        {
+            "type": "photo",
+            "media": "https://raw.githubusercontent.com/mrsmrtv/Mirataki/refs/heads/main/%D0%B1%D0%B5%D0%BB%D0%B0%D1%8F%20%D1%81%D0%BF%D0%B5%D1%80%D0%B5%D0%B4%D0%B8.png",
+            "caption": "Белая футболка — вид спереди"
+        },
+        {
+            "type": "photo",
+            "media": "https://raw.githubusercontent.com/mrsmrtv/Mirataki/refs/heads/main/%D0%B1%D0%B5%D0%BB%D0%B0%D1%8F%20%D1%81%D0%B7%D0%B0%D0%B4%D0%B8.png",
+            "caption": "Белая футболка — вид сзади"
+        },
+        {
+            "type": "photo",
+            "media": "https://raw.githubusercontent.com/mrsmrtv/Mirataki/refs/heads/main/%D1%87%D0%B5%D1%80%D0%BD%D0%B0%D1%8F%20%D1%81%D0%BF%D0%B5%D1%80%D0%B5%D0%B4%D0%B8.png",
+            "caption": "Чёрная футболка — вид спереди"
+        },
+        {
+            "type": "photo",
+            "media": "https://raw.githubusercontent.com/mrsmrtv/Mirataki/refs/heads/main/%D1%87%D0%B5%D1%80%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B7%D0%B0%D0%B4%D0%B8.png",
+            "caption": "Чёрная футболка — вид сзади"
+        },
+    ]
+    send_media_group(chat_id, media)
+
+    keyboard = {
+    "inline_keyboard": [
+        [{"text": "🤍 Купить белую", "callback_data": "buy_white_shirt"}],
+        [{"text": "🖤 Купить чёрную", "callback_data": "buy_black_shirt"}],
+        [{"text": "💳 Конвертировать в тенге", "callback_data": "convert_to_tenge"}]
+    ]
+    }
+
+    send_message(chat_id, "Выберите действие:", reply_markup=keyboard)
+
+
 # -------------------- Геймдизайн --------------------
-def get_rank(coins):
-    if coins >= 100000:
-        return "🌟 Легенда"
-    elif coins >= 50000:
-        return "🛸 Гуру Городов"
-    elif coins >= 10000:
-        return "🏔️ Покоритель вершин"
-    elif coins >= 5000:
-        return "🎯 Профи"
-    elif coins >= 2500:
-        return "🔥 Активист"
-    elif coins >= 1000:
-        return "🚴‍♂️ Турист"
-    elif coins >= 500:
-        return "🏞️ Активный исследователь"
-    elif coins >= 100:
-        return "🧭 Городской путник"
-    elif coins >= 50:
-        return "👟 Исследователь-стажёр"
-    elif coins >= 10:
-        return "🐣 Любопытный"
+def get_rank(user_id):
+    count = len(set(checkins.get(user_id, [])))
+    if count >= 1000:
+        return f"🌟 Легенда ({count} одобренных фотографий)"
+    elif count >= 750:
+        return f"🛸 Гуру Городов ({count} одобренных фотографий)"
+    elif count >= 500:
+        return f"🏔️ Покоритель вершин ({count} одобренных фотографий)"
+    elif count >= 250:
+        return f"🎯 Профи ({count} одобренных фотографий)"
+    elif count >= 150:
+        return f"🔥 Активист ({count} одобренных фотографий)"
+    elif count >= 100:
+        return f"🚴‍♂️ Турист ({count} одобренных фотографий)"
+    elif count >= 50:
+        return f"🏞️ Активный исследователь ({count} одобренных фотографий)"
+    elif count >= 25:
+        return f"🧭 Городской путник ({count} одобренных фотографий)"
+    elif count >= 10:
+        return f"👟 Исследователь-стажёр ({count} одобренных фотографий)"
+    elif count >= 5:
+        return f"🐣 Любопытный ({count} одобренных фотографий)"
     else:
-        return "👶 Новичок"
+        return f"👶 Новичок ({count} одобренных фотографий)"
 
 def daily_bonus(user_id):
     today = datetime.utcnow().date().isoformat()
@@ -126,13 +173,11 @@ def handle_text(user_id, chat_id, text):
     users.setdefault(user_id, {"coins": 0, "invited": [], "raffle": False, "registered": False})
 
     if text == "/start":
-        if daily_bonus(user_id):
-            send_message(chat_id, "🎁 Ты получил ежедневный бонус: +10 Mirataki")
         send_message(chat_id, "👋 Добро пожаловать в Mirataki!", reply_markup=get_main_keyboard(is_moderator))
 
     elif text == "💰 Баланс":
         coins = users[user_id]["coins"]
-        rank = get_rank(coins)
+        rank = get_rank(user_id)
         send_message(chat_id, f"💰 У тебя {coins} Mirataki\n🎖️ Твой ранг: {rank}")
 
     elif text == "📍 Места":
@@ -176,35 +221,76 @@ def handle_text(user_id, chat_id, text):
             send_message(chat_id, "😕 У тебя пока нет достижений.")
         else:
             send_message(chat_id, "🏅 Твои достижения:\n" + "\n".join(ach))
+    
     elif text == "🛍 Магазин":
-        send_message(chat_id, "👕 Футболка Mirataki — 500 Mirataki\n\nНажми кнопку ниже, чтобы купить:", reply_markup={
-            "inline_keyboard": [
-                [{"text": "🛒 Купить футболку", "callback_data": "buy_shirt"}]
-            ]
-        })
+        show_shop(chat_id)
+
 
    
         # Обработка ввода адреса доставки
     elif users[user_id].get("state", {}).get("action") == "await_address":
         address = text.strip()
-        state = users[user_id]["state"]
-        price = state["price"]
 
-        users[user_id]["coins"] -= price
-        users[user_id].setdefault("purchases", []).append({
-            "product": "Футболка Mirataki",
-            "address": address,
+    # Сохраняем адрес временно
+        users[user_id]["state"]["temp_address"] = address
+        save_json(USERS_FILE, users)
+
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "✅ Подтвердить", "callback_data": "confirm_address"}]
+            ]
+        }
+
+        send_message(
+            chat_id,
+            f"📬 Ты указал адрес:\n\n{address}\n\nЕсли всё верно, нажми «Подтвердить».",
+            reply_markup=keyboard
+        )
+
+    elif users[user_id].get("state", {}).get("action") == "enter_convert_amount":
+        try:
+            amount = int(text)
+            if amount <= 0 or amount > users[user_id]["coins"]:
+                send_message(chat_id, "❌ Укажи корректное количество Mirataki.")
+            else:
+                users[user_id]["state"] = {
+                    "action": "enter_card",
+                    "amount": amount
+                }
+                send_message(chat_id, "💳 Введи номер своей банковской карты (пример: 4400 1234 5678 9012):")
+        except ValueError:
+            send_message(chat_id, "⚠️ Введи число.")
+        return
+
+    elif users[user_id].get("state", {}).get("action") == "enter_card":
+        card_number = text.strip()
+        amount = users[user_id]["state"]["amount"]
+        rate = 10
+        tenge = amount * rate
+
+        if len(card_number.replace(" ", "")) < 16:
+            send_message(chat_id, "⚠️ Похоже, номер карты некорректен. Попробуй снова.")
+            return
+
+        users[user_id]["coins"] -= amount
+        users[user_id].setdefault("conversions", []).append({
+            "amount": amount,
+            "received": tenge,
+            "card": card_number,
             "time": datetime.utcnow().isoformat()
         })
         users[user_id]["state"] = {}
         save_json(USERS_FILE, users)
 
-        send_message(chat_id, f"✅ Заказ оформлен!\nФутболка Mirataki будет отправлена по адресу:\n📍 {address}")
+        send_message(chat_id, f"✅ Заявка на вывод {tenge} ₸ отправлена.\n💳 Карта: {card_number}\nОжидай перевода.")
 
-        # Уведомить модераторов
+        # Уведомление модераторов
         for mod_id in MODERATOR_IDS:
-            send_message(mod_id, f"📦 Новый заказ от пользователя {user_id}:\nФутболка Mirataki\n📍 Адрес: {address}")
+            send_message(mod_id, f"💸 Заявка на вывод:\nПользователь {user_id}\n🔢 {amount} Mirataki\n💰 {tenge} ₸\n💳 {card_number}")
         return
+
+
+    
     elif is_moderator and text == "🚀 Начать розыгрыш":
         if raffle_state.get("active"):
             send_message(chat_id, "⚠️ Розыгрыш уже идёт")
@@ -265,19 +351,61 @@ def handle_callback(query):
     user_id = str(query["from"]["id"])
     message = query["message"]
     chat_id = message["chat"]["id"]
-    if data == "buy_shirt":
-            price = 500
-            if users[user_id]["coins"] < price:
-                send_message(chat_id, f"❌ У тебя недостаточно Mirataki. Нужно {price}.")
-                return
-            users[user_id]["state"] = {
-                "action": "await_address",
-                "product": "shirt",
-                "price": price
-            }
-            save_json(USERS_FILE, users)
-            send_message(chat_id, "📦 Введи адрес доставки для получения футболки:")
+    if data == "buy_white_shirt" or data == "buy_black_shirt":
+        price = 500
+        if users[user_id]["coins"] < price:
+            send_message(chat_id, f"❌ У тебя недостаточно Mirataki. Нужно {price}.")
             return
+
+        color = "белую" if data == "buy_white_shirt" else "чёрную"
+
+        users[user_id]["state"] = {
+            "action": "await_address",
+            "product": f"shirt_{color}",
+            "price": price,
+            "color": color
+        }
+
+        save_json(USERS_FILE, users)
+        send_message(
+    chat_id,
+    f"📦 Введи адрес доставки для получения {color} футболки.\n\n📌 Пример: г. Алматы, улица Пушкина 7а, +77001234567"
+)
+        return
+
+    if data == "confirm_address":
+        state = users[user_id].get("state", {})
+        address = state.get("temp_address")
+        price = state.get("price")
+        color = state.get("color", "неизвестный цвет")
+
+
+        if not address:
+            send_message(chat_id, "⚠️ Адрес не найден. Попробуй снова.")
+            return
+
+        users[user_id]["coins"] -= price
+        users[user_id].setdefault("purchases", []).append({
+            "product": "Футболка Mirataki",
+            "address": address,
+            "time": datetime.utcnow().isoformat()
+        })
+
+        users[user_id]["state"] = {}
+        save_json(USERS_FILE, users)
+
+        send_message(chat_id, f"✅ Заказ оформлен!\nФутболка Mirataki ({color}) будет отправлена по адресу:\n📍 {address}")
+
+
+        for mod_id in MODERATOR_IDS:
+            send_message(mod_id, f"📦 Новый заказ от пользователя {user_id}:\nФутболка Mirataki ({color})\n📍 Адрес: {address}")
+        return
+    elif data == "convert_to_tenge":
+        users[user_id]["state"] = {"action": "enter_convert_amount"}
+        send_message(chat_id, "💱 Введи количество Mirataki, которое хочешь обменять (1 Mirataki = 10 ₸):")
+        return
+
+
 
     if str(user_id) not in MODERATOR_IDS:
         return
@@ -333,11 +461,11 @@ def handle_callback(query):
 
         # Выдаём награду в зависимости от уровня
         reward_map = {
-            "парк": 10,
-            "центр": 30,
-            "горы": 100,
+            "парк": 25,
+            "центр": 75,
+            "горы": 150,
         }
-        reward = reward_map.get(level.lower(), 10)
+        reward = reward_map.get(level.lower(), 25)
 
         users.setdefault(target_id, {"coins": 0, "invited": [], "raffle": False, "registered": False})
         checkins.setdefault(target_id, [])
